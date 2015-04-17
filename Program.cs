@@ -29,10 +29,12 @@ namespace OggFileReader
             byte[] streamserial = new byte[4];
             byte[] tempserial = new byte[4];
             bool showoffsets = false;
+            bool mappages = false;
             var filelist = new List<string>();
             var offsets = new List<long>();
             string[] commandlineargs = Environment.GetCommandLineArgs();
             string filename = "";
+            List<string> outputlog = new List<string>();
 
 
             if (args.Length == 0) //needs at least 1 arg, if not, let the user know
@@ -50,13 +52,20 @@ namespace OggFileReader
                     }
                     if (arg.StartsWith("-o") || arg.StartsWith("/o"))
                     {
-                        Console.WriteLine("showing offsets.");
+                        Console.WriteLine("Showing offsets.");
                         showoffsets = true;
+                    }
+                    if(arg.StartsWith("-m") || arg.StartsWith("/m"))
+                    {
+                        Console.WriteLine("Mapping page layout to console.");
+                        mappages = true;
                     }
                     if (arg.StartsWith("-h") || arg.StartsWith("/h") || arg.StartsWith("-?") || arg.StartsWith("/?"))
                     {
+                        Console.WriteLine("-h/h-?/? show this help message.");
                         Console.WriteLine("oggfilereader.exe filepath <options>");
-                        Console.WriteLine("only option at the moment is -o or /o to show offets at which a frame is found");
+                        Console.WriteLine("-o or /o to show offets at which a frame is found, can be used with -m /m but will not look pretty.");
+                        Console.WriteLine("-m or /m map the pages on screen as they are found, can be used with -o /o but will not look pretty.");
                     }
 
                 }
@@ -94,7 +103,10 @@ namespace OggFileReader
                                             {
                                                 case 0x00:
                                                     unsetfound++; //found a type 00 page, so increment the counter
-
+                                                    if(mappages == true)
+                                                    {
+                                                        Console.Write("0");
+                                                    }
                                                     filestream.Position += 8;
                                                     for (int i = 0; i < 3; i++)
                                                     {
@@ -110,10 +122,17 @@ namespace OggFileReader
                                                     break;
                                                 case 0x01:
                                                     continuefound++; // page type 01 found, increment and move on, maybe add serial compare?
+                                                    if(mappages == true)
+                                                    {
+                                                        Console.Write("1");
+                                                    }
                                                     break;
                                                 case 0x02:
                                                     beginfound++; // page type 02 found, increment and do initial stream serial parse.
-
+                                                    if(mappages == true)
+                                                    {
+                                                        Console.Write("2");
+                                                    }
                                                     filestream.Position += 8;
                                                     for (int i = 0; i < 3; i++)
                                                     {
@@ -122,14 +141,23 @@ namespace OggFileReader
                                                     break;
                                                 case 0x04: //page type 04 found, increment counter and parse final granular position for total length.
                                                     endfound++;
+                                                    if(mappages == true)
+                                                    {
+                                                        Console.Write("4");
+                                                    }
                                                     for (int i = 0; i < 7; i++)
                                                     {
                                                         granular[i] = (byte)filestream.ReadByte();
                                                     }
                                                     break;
                                                 default: //no known type is detected, spitout error/warning and incremement count
-                                                    Console.WriteLine("Unknown frame type detected at {0}.", filestream.Position - 1);
+                                                    //Console.WriteLine("Unknown frame type detected at {0}.", filestream.Position - 1);                                                 
                                                     unknownfound++;
+                                                    if(mappages == true)
+                                                    {
+                                                        filestream.Position -= 1;
+                                                        Console.Write(filestream.ReadByte().ToString());
+                                                    }
                                                     break;
 
                                             }
@@ -157,6 +185,7 @@ namespace OggFileReader
                 {
                     Array.Reverse(granular); // output granular in reverse byte order if not little endian
                 }
+                Console.Write("\n");
                 Console.WriteLine("Number of files processed: {0}", filelist.Count); // number of files processed, multi-file not yet supported
                 Console.WriteLine("Steam Serial Number: {0}", BitConverter.ToString(streamserial, 0)); // output stream serial
                 Console.WriteLine("Total Samples : {0}", BitConverter.ToInt64(granular, 0)); //output total samples using granular value from 04 type frame
