@@ -32,7 +32,6 @@ namespace OggFileReader
             bool mappages = false;
             var filelist = new List<string>();
             var offsets = new List<long>();
-            string[] commandlineargs = Environment.GetCommandLineArgs();
             string filename = "";
             List<string> outputlog = new List<string>();
 
@@ -42,9 +41,9 @@ namespace OggFileReader
                 Console.WriteLine("No Args set.");
             }
             else
-                foreach (string arg in commandlineargs) //process args individually
+                foreach (string arg in args) //process args individually
                 {
-                    if (arg.EndsWith("ogg"))
+                    if (arg.EndsWith(".ogg"))
                     {
                         filename = arg.ToString();
                         filelist.Add(filename);
@@ -64,7 +63,7 @@ namespace OggFileReader
                     {
                         Console.WriteLine("-h/h-?/? show this help message.");
                         Console.WriteLine("oggfilereader.exe filepath <options>");
-                        Console.WriteLine("-o or /o to show offets at which a frame is found, can be used with -m /m but will not look pretty.");
+                        Console.WriteLine("-o or /o to show offets (in decimal) at which a frame is found and will display warnings on unknown frames, can be used with -m /m but will not look pretty.");
                         Console.WriteLine("-m or /m map the pages on screen as they are found, can be used with -o /o but will not look pretty.");
                     }
 
@@ -73,7 +72,14 @@ namespace OggFileReader
             {
                 Console.WriteLine("No Filename specified.");
                 Console.WriteLine("Drop a file on the EXE or include a pathname as an argument.");
-                Console.ReadKey();
+
+
+            }
+            else if(!File.Exists(filename))
+            {
+                Console.WriteLine("File not found.");
+
+
             }
             else // on to the fun stuff!
             {
@@ -150,9 +156,13 @@ namespace OggFileReader
                                                         granular[i] = (byte)filestream.ReadByte();
                                                     }
                                                     break;
-                                                default: //no known type is detected, spitout error/warning and incremement count
+                                                default: //no known type is detected
                                                     //Console.WriteLine("Unknown frame type detected at {0}.", filestream.Position - 1);                                                 
                                                     unknownfound++;
+                                                    if(showoffsets ==true)
+                                                    {
+                                                        Console.WriteLine("Uknown frame type detected at {0}.", offsets[offsets.Count - 1]);
+                                                    }
                                                     if(mappages == true)
                                                     {
                                                         filestream.Position -= 1;
@@ -211,8 +221,11 @@ namespace OggFileReader
                 {
                     Console.WriteLine("Page count invalid or missing frames."); //page count is off, we might be missing frames
                 }
-                Console.ReadKey(); //wait for keypress to exit.
+
             }
+                Console.WriteLine("Press any key to exit.");
+                Console.ReadKey(); //wait for keypress to exit.
+
         }
     }
 }
